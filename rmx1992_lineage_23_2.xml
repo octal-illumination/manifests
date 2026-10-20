@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  RMX1992 (Realme X2) local manifest — LineageOS 23.2 (A16) line.
+  Note: This code is purely AI-generated.
+
+  THE version selector for the LOS 23.2 (A16) build: every project pinned
+  explicitly to the lineage-23.2 component branches. Used via the crave LOS 23.2
+  project (ID 99) with this overlay cloned into .repo/local_manifests/ by the
+  build command (roms/CRAVE-PIPELINE.md).
+-->
+<manifest>
+  <remote name="oi" fetch="https://github.com/octal-illumination" />
+
+  <project path="device/realme/X2" name="android_device_realme_X2" remote="oi" revision="lineage-23.2" />
+  <project path="kernel/realme/sm6150" name="android_kernel_realme_sm6150" remote="oi" revision="lineage-23.2" />
+  <project path="vendor/realme/X2" name="android_vendor_realme_X2" remote="oi" revision="lineage-23.2" />
+</manifest>

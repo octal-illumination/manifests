@@ -17,3 +17,14 @@ Layer repos (all public, all on branch `lineage-24.0`):
 
 Workspace governance: `~/Projects/android/devices/rmx1992/roms/CRAVE-COMPLIANCE.md`
 (ban rules R1–R12, mechanically enforced by crave-guard.sh).
+
+---
+
+## Versions table (one-handle-per-version map)
+
+| Version line | Manifests branch | device @ | kernel @ | vendor @ | Status |
+|---|---|---|---|---|---|
+| **LOS 23.2 (A16)** — the working line | `lineage-23.2` | `lineage-23.2` | `lineage-23.2` | `lineage-23.2` | ACTIVE (job 306550 era) — all build fixes land here |
+| **LOS 24.0 (A17)** — adaptation line | `lineage-24.0` | `lineage-24.0` | `lineage-24.0` | `lineage-24.0` | FROZEN until the A16 line builds+boots; then A17 adaptation commits land on these branches |
+
+Conventions: fix commits carry `X2-Fix: version-neutral` or `X2-Fix: a16-specific` footers; cross-line propagation is manual cherry-pick (never auto-merge). Future flavors: one manifests branch per flavor (`<flavor>-<version>`), forked from the newest known-good line, only after a version builds + boots.
