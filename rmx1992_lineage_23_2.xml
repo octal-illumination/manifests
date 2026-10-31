@@ -11,7 +11,7 @@
 <manifest>
   <remote name="oi" fetch="https://github.com/octal-illumination" />
 
-  <project path="device/realme/X2" name="android_device_realme_X2" remote="oi" revision="adcde091ed2ce7eeca56af382f948f5dae5be52b" />
+  <project path="device/realme/X2" name="android_device_realme_X2" remote="oi" revision="78186f8e5af515314e34d156cc5b1cceacf2083c" />
   <project path="kernel/realme/sm6150" name="android_kernel_realme_sm6150" remote="oi" revision="067fe6fd386545c8dcab218013d279922ce7447a" />
   <project path="vendor/realme/X2" name="android_vendor_realme_X2" remote="oi" revision="ac04a01c80f5f2ee75d333b5cff0595d3da535be" />
 </manifest>
