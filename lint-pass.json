@@ -1,15 +1,15 @@
 {
-  "bundle_sha": "a236f9acd35a6109",
-  "gates": 115,
-  "gates_total": 115,
+  "bundle_sha": "b94ccdd48a983270",
+  "gates": 116,
+  "gates_total": 116,
   "host": "Dev-General",
   "manifest": "rmx1992_lineage_23_2.xml",
   "pins": {
-    "device": "d405a57c0014383b481357e0ae4fe1787d57fb26",
+    "device": "c6f965c91c901be57d18ba7f0558d135ec5b525d",
     "kernel": "067fe6fd386545c8dcab218013d279922ce7447a",
-    "vendor": "e325d199ebc0e65de800aef040bc333355c10a6d"
+    "vendor": "1d218c0cb32ed95c15210f2b449924af4979524b"
   },
   "result": "pass",
   "result_line": "RESULT: 0 FAIL, 0 WARN, 4 INFO",
-  "ts": "2026-11-01T02:15:49+0530"
+  "ts": "2026-11-01T03:34:40+0530"
 }
