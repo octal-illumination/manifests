@@ -1,0 +1,110 @@
+# Note: This code is purely AI-generated.
+# Kernel arm64 asm compatibility for the LOS 24.0 toolchain (clang 21 era). Three root causes,
+# each reproduced and verified on the build host with the real build flags:
+# 1. scripts/.. no — this patch covers arm64 headers only (0002 covers the host tools):
+# 2. arch/arm64/include/asm/spinlock.h: the ticket-lock asm used an immediate-constrained
+#    operand ("I" (1 << TICKET_SHIFT)) referenced as a REGISTER (%w5/%w3) — every clang in the
+#    prebuilts (r547379..r596125) rejects the out-of-range immediate (65536 vs 'I' 0..4095).
+#    Fix: bake the constants (#0x10000) into the instruction strings (the form vanilla 4.14
+#    used before the LSE parameterisation) and drop the immediate operands.
+# 3. clang's asm parser requires an explicit (possibly empty) input section before a clobber
+#    list — arch_spin_trylock lost its only input with (2), so an empty ':
+	:' section is added.
+# 4. arch/arm64/include/asm/stack_pointer.h: `register unsigned long current_stack_pointer
+#    asm("sp")` is a GCC-only global register variable. With -fverbose-asm (kbuild adds it ONLY
+#    for the *.s targets: bounds.s, asm-offsets.s) plus any other inline asm in the TU, clang 21
+#    rejects the declaration ("register 'sp' unsuitable for global register variables"). Binary-
+#    searched out of the preprocessed TU. Replaced with a statement expression reading SP via an
+#    explicit mov; both call sites (percpu.h fake stack read, perf_event.h regs->sp) keep their
+#    semantics. Verified: asm-offsets.s and bounds.s compile clean with the real build config
+#    and the LOS default clang.
+# Applied by ~/sync.sh after every repo sync (idempotent via git apply --check).
+# Generated from the live kernel tree diff, 2026-11-06.
+diff --git a/arch/arm64/include/asm/spinlock.h b/arch/arm64/include/asm/spinlock.h
+index cdab46f7c..340b36480 100644
+--- a/arch/arm64/include/asm/spinlock.h
++++ b/arch/arm64/include/asm/spinlock.h
+@@ -40,11 +40,11 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
+ 	/* LL/SC */
+ "	prfm	pstl1strm, %3\n"
+ "1:	ldaxr	%w0, %3\n"
+-"	add	%w1, %w0, %w5\n"
++"	add	%w1, %w0, #0x10000\n"
+ "	stxr	%w2, %w1, %3\n"
+ "	cbnz	%w2, 1b\n",
+ 	/* LSE atomics */
+-"	mov	%w2, %w5\n"
++"	mov	%w2, #0x10000\n"
+ "	ldadda	%w2, %w0, %3\n"
+ 	__nops(3)
+ 	)
+@@ -64,7 +64,7 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
+ 	/* We got the lock. Critical section starts here. */
+ "3:"
+ 	: "=&r" (lockval), "=&r" (newval), "=&r" (tmp), "+Q" (*lock)
+-	: "Q" (lock->owner), "I" (1 << TICKET_SHIFT)
++	: "Q" (lock->owner)
+ 	: "memory");
+ }
+ 
+@@ -79,7 +79,7 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
+ 	"1:	ldaxr	%w0, %2\n"
+ 	"	eor	%w1, %w0, %w0, ror #16\n"
+ 	"	cbnz	%w1, 2f\n"
+-	"	add	%w0, %w0, %3\n"
++	"	add	%w0, %w0, #0x10000\n"
+ 	"	stxr	%w1, %w0, %2\n"
+ 	"	cbnz	%w1, 1b\n"
+ 	"2:",
+@@ -87,13 +87,13 @@ static inline int arch_spin_trylock(arch_spinlock_t *lock)
+ 	"	ldr	%w0, %2\n"
+ 	"	eor	%w1, %w0, %w0, ror #16\n"
+ 	"	cbnz	%w1, 1f\n"
+-	"	add	%w1, %w0, %3\n"
++	"	add	%w1, %w0, #0x10000\n"
+ 	"	casa	%w0, %w1, %2\n"
+-	"	sub	%w1, %w1, %3\n"
++	"	sub	%w1, %w1, #0x10000\n"
+ 	"	eor	%w1, %w1, %w0\n"
+ 	"1:")
+ 	: "=&r" (lockval), "=&r" (tmp), "+Q" (*lock)
+-	: "I" (1 << TICKET_SHIFT)
++	:
+ 	: "memory");
+ 
+ 	return !tmp;
+diff --git a/arch/arm64/include/asm/stack_pointer.h b/arch/arm64/include/asm/stack_pointer.h
+index 8e57c96ad..d8859b81b 100644
+--- a/arch/arm64/include/asm/stack_pointer.h
++++ b/arch/arm64/include/asm/stack_pointer.h
+@@ -2,9 +2,29 @@
+ #ifndef __ASM_STACK_POINTER_H
+ #define __ASM_STACK_POINTER_H
+ 
++#ifndef __ASSEMBLY__
++
+ /*
+  * how to get the current stack pointer from C
++ *
++ * NOTE (2026-11-06, octal-illumination): this was
++ *   register unsigned long current_stack_pointer asm ("sp");
++ * — a global register variable. clang 21 rejects that declaration with
++ * "register 'sp' unsuitable for global register variables on this target"
++ * whenever the TU also contains other inline asm and kbuild's -fverbose-asm
++ * is set (kbuild adds -fverbose-asm only for the *.s targets: bounds.s and
++ * asm-offsets.s). GCC-only construct; replaced with a statement expression
++ * that reads SP via an explicit mov — valid for GCC and clang alike, same
++ * value semantics for both call sites (percpu.h fake stack read,
++ * perf_event.h regs->sp fetch).
+  */
+-register unsigned long current_stack_pointer asm ("sp");
++#define current_stack_pointer					\
++({								\
++	unsigned long __sp;					\
++	asm("mov %0, sp" : "=r" (__sp));			\
++	__sp;							\
++})
++
++#endif /* __ASSEMBLY__ */
+ 
+ #endif /* __ASM_STACK_POINTER_H */
