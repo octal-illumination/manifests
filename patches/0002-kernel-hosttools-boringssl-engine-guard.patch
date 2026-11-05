@@ -1,0 +1,84 @@
+# Note: This code is purely AI-generated.
+# Kernel host-tool fix (kernel source IS ours to maintain): scripts/sign-file.c and
+# scripts/extract-cert.c used the OpenSSL ENGINE API unconditionally. The LOS kernel
+# build (BoardConfigKernel.mk) deliberately compiles host tools against prebuilt
+# BoringSSL headers (kernel-build-tools), and BoringSSL defines OPENSSL_NO_ENGINE and
+# ships no ENGINE API at all (verified: libcrypto.so exports zero ENGINE symbols).
+# AOSP android-mainline solved this exact problem by conditionalizing PKCS#11 support
+# on OPENSSL_NO_ENGINE; this is the minimal backport of that conditionalization.
+# With ENGINE unavailable, a pkcs11: key now fails with an explicit error (upstream
+# behavior) instead of implicit-declaration compile errors. Verified: both files
+# compile with 0 errors under BOTH the BoringSSL shadow (clang) and system OpenSSL.
+# Applied by ~/sync.sh after every repo sync (idempotent via git apply --check).
+# Generated from the live kernel tree diff, 2026-11-05.
+diff --git a/scripts/extract-cert.c b/scripts/extract-cert.c
+index dd1a4bd70..b4b46be5d 100644
+--- a/scripts/extract-cert.c
++++ b/scripts/extract-cert.c
+@@ -21,7 +21,9 @@
+ #include <openssl/bio.h>
+ #include <openssl/pem.h>
+ #include <openssl/err.h>
++#ifndef OPENSSL_NO_ENGINE
+ #include <openssl/engine.h>
++#endif
+ 
+ /*
+  * OpenSSL 3.0 deprecates the OpenSSL's ENGINE API.
+@@ -118,7 +120,9 @@ int main(int argc, char **argv)
+ 		ERR(!f, "%s", cert_dst);
+ 		fclose(f);
+ 		exit(0);
+-	} else if (!strncmp(cert_src, "pkcs11:", 7)) {
++	}
++#ifndef OPENSSL_NO_ENGINE
++	else if (!strncmp(cert_src, "pkcs11:", 7)) {
+ 		ENGINE *e;
+ 		struct {
+ 			const char *cert_id;
+@@ -141,7 +145,10 @@ int main(int argc, char **argv)
+ 		ENGINE_ctrl_cmd(e, "LOAD_CERT_CTRL", 0, &parms, NULL, 1);
+ 		ERR(!parms.cert, "Get X.509 from PKCS#11");
+ 		write_cert(parms.cert);
+-	} else {
++	}
++#endif
++	else {
++		ERR(!strncmp(cert_src, "pkcs11:", 7), "PKCS#11 requested but ENGINE support is not compiled in");
+ 		BIO *b;
+ 		X509 *x509;
+ 
+diff --git a/scripts/sign-file.c b/scripts/sign-file.c
+index 12acc70e5..719db2ff6 100644
+--- a/scripts/sign-file.c
++++ b/scripts/sign-file.c
+@@ -27,7 +27,9 @@
+ #include <openssl/evp.h>
+ #include <openssl/pem.h>
+ #include <openssl/err.h>
++#ifndef OPENSSL_NO_ENGINE
+ #include <openssl/engine.h>
++#endif
+ 
+ /*
+  * OpenSSL 3.0 deprecates the OpenSSL's ENGINE API.
+@@ -143,6 +145,7 @@ static EVP_PKEY *read_private_key(const char *private_key_name)
+ {
+ 	EVP_PKEY *private_key;
+ 
++#ifndef OPENSSL_NO_ENGINE
+ 	if (!strncmp(private_key_name, "pkcs11:", 7)) {
+ 		ENGINE *e;
+ 
+@@ -160,7 +163,10 @@ static EVP_PKEY *read_private_key(const char *private_key_name)
+ 		private_key = ENGINE_load_private_key(e, private_key_name,
+ 						      NULL, NULL);
+ 		ERR(!private_key, "%s", private_key_name);
+-	} else {
++	} else
++#endif
++	{
++		ERR(!strncmp(private_key_name, "pkcs11:", 7), "%s: PKCS#11 requested but ENGINE support is not compiled in", private_key_name);
+ 		BIO *b;
+ 
+ 		b = BIO_new_file(private_key_name, "rb");
