@@ -1,0 +1,20 @@
+# Note: This code is purely AI-generated.
+# Build-tree patch (base repo not modified by us) - reference-ril omits header_libs,
+# so telephony/ril_cdma_sms.h is not found (libril/librilutils declare ril_headers).
+# The X2 uses Qualcomm qcril; reference-ril is never loaded at runtime.
+# Applied by ~/sync.sh after every repo sync (idempotent via git apply --check).
+# Generated as the real diff: A16 archive (patched tree) vs 24.0 upstream, 2026-11-05.
+--- a/hardware/ril/reference-ril/Android.bp
++++ b/hardware/ril/reference-ril/Android.bp
+@@ -46,6 +46,11 @@
+         "librilutils",
+     ],
+     static_libs: ["libbase"],
++    // PATCH (2026-10-31, octal-illumination): upstream module omits header_libs, so
++    // telephony/ril_cdma_sms.h is not found. libril and librilutils both declare
++    // ["ril_headers"]; this module must too. Applied as a build-tree patch recorded in
++    // roms/lineage/manifests (see PATCHES.md) -- the base repo is not modified.
++    header_libs: ["ril_headers"],
+     cflags: [
+         "-D_GNU_SOURCE", // for asprinf
+         "-Wall",
