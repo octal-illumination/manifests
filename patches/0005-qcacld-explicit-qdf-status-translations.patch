@@ -1,0 +1,58 @@
+# Note: This code is purely AI-generated.
+# Explicit QDF_STATUS translations for the three implicit A_STATUS->QDF_STATUS conversions
+# in the Wi-Fi driver (user-directed: the 'fully conformant' fix replacing patch 0004's
+# module-scoped -Wno). The compiler-verified inventory (build 13, warning-as-warning scan
+# across the FULL kernel) found exactly three sites:
+#   htt_h2t.c:631,647 (htt_h2t_rx_ring_cfg_msg_ll) -> QDF_STATUS_E_FAILURE, matching the
+#     same function's own two other failure returns (A_ERROR = generic failure).
+#   ce_main.c:2135 (hif_send_head) -> QDF_STATUS_E_INVAL (null CE handle = invalid argument).
+# IMPORTANT: A_STATUS and QDF_STATUS are NOT value-aligned (A_ERROR = -1; QDF_STATUS starts
+# at 0; A_EPERM=8 vs QDF_STATUS_E_PERM=12), so bare casts would be semantically wrong — the
+# legacy implicit conversion returned out-of-space values that only worked because callers
+# test != QDF_STATUS_SUCCESS. The translations return proper in-space codes; callers are
+# value-agnostic (verified htc_send.c / htt.c).
+# This patch REPLACES 0004 (the -Wno-implicit-enum-enum-cast line is gone; the Kbuild is
+# pristine and -Werror is fully in force for the module).
+# Applied by ~/sync.sh after every repo sync (idempotent via git apply --check).
+# Generated from the live kernel tree diff, 2026-11-06.
+diff --git a/drivers/staging/qca-wifi-host-cmn/hif/src/ce/ce_main.c b/drivers/staging/qca-wifi-host-cmn/hif/src/ce/ce_main.c
+index ccf04ce52..067875824 100644
+--- a/drivers/staging/qca-wifi-host-cmn/hif/src/ce/ce_main.c
++++ b/drivers/staging/qca-wifi-host-cmn/hif/src/ce/ce_main.c
+@@ -2132,7 +2132,13 @@ hif_send_head(struct hif_opaque_softc *hif_ctx,
+ 
+ 	if (qdf_unlikely(!ce_hdl)) {
+ 		HIF_ERROR("%s: error CE handle is null", __func__);
+-		return A_ERROR;
++		/* NOTE (2026-11-06, octal-illumination): was `return A_ERROR;` — an implicit
++		 * A_STATUS->QDF_STATUS conversion. The two enums are NOT value-aligned
++		 * (A_ERROR = -1; QDF_STATUS has no negative enumerators), so the legacy
++		 * implicit conversion returned a value outside QDF_STATUS's space that only
++		 * worked because callers test != QDF_STATUS_SUCCESS. Translate to the proper
++		 * code: a null handle is an invalid argument. */
++		return QDF_STATUS_E_INVAL;
+ 	}
+ 
+ 	QDF_NBUF_UPDATE_TX_PKT_COUNT(nbuf, QDF_NBUF_TX_PKT_HIF);
+diff --git a/drivers/staging/qcacld-3.0/core/dp/htt/htt_h2t.c b/drivers/staging/qcacld-3.0/core/dp/htt/htt_h2t.c
+index a2a4051dc..61c9656f6 100644
+--- a/drivers/staging/qcacld-3.0/core/dp/htt/htt_h2t.c
++++ b/drivers/staging/qcacld-3.0/core/dp/htt/htt_h2t.c
+@@ -628,7 +628,7 @@ htt_h2t_rx_ring_cfg_msg_hl(struct htt_pdev_t *pdev)
+ 
+ 	pkt = htt_htc_pkt_alloc(pdev);
+ 	if (!pkt)
+-		return A_ERROR; /* failure */
++		return QDF_STATUS_E_FAILURE; /* failure */
+ 
+ 	/*
+ 	 * show that this is not a tx frame download
+@@ -644,7 +644,7 @@ htt_h2t_rx_ring_cfg_msg_hl(struct htt_pdev_t *pdev)
+ 		HTC_HEADER_LEN + HTC_HDR_ALIGNMENT_PADDING, 4, true);
+ 	if (!msg) {
+ 		htt_htc_pkt_free(pdev, pkt);
+-		return A_ERROR; /* failure */
++		return QDF_STATUS_E_FAILURE; /* failure */
+ 	}
+ 	/*
+ 	 * Set the length of the message.
