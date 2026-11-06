@@ -1,0 +1,32 @@
+# Note: This code is purely AI-generated.
+# kmod >= 27 warns when modules.builtin.modinfo is absent from an installed module tree. That file is
+# produced by the 5.x vmlinux-modinfo pipeline; this 4.14 kernel has no producer for it (it generates
+# modules.order and modules.builtin only - verified in the build output), so the warning reports the
+# kernel GENERATION rather than a defect in this tree, and repeats on every build.
+#
+# Supplying an empty file was rejected: it would assert "no built-in module metadata" about a kernel
+# that has thousands of built-ins. Instead the wrapper drops that single line and passes every other
+# depmod diagnostic through unchanged, keeping depmod's exit status.
+diff --git a/scripts/depmod.sh b/scripts/depmod.sh
+index c7b8f827c..100c219df 100755
+--- a/scripts/depmod.sh
++++ b/scripts/depmod.sh
+@@ -63,8 +63,17 @@ set -- -ae -F System.map
+ if test -n "$INSTALL_MOD_PATH"; then
+ 	set -- "$@" -b "$INSTALL_MOD_PATH"
+ fi
+-"$DEPMOD" "$@" "$KERNELRELEASE" $SYMBOL_PREFIX
++# NOTE (2026-11-06, octal-illumination): kmod >= 27 warns when modules.builtin.modinfo is absent.
++# That file is produced by the 5.x vmlinux-modinfo pipeline; this 4.14 tree has no producer for it
++# (it generates modules.order and modules.builtin only). The warning therefore reports the kernel
++# GENERATION, not a defect in this tree, and it repeats on every build - exactly the kind of line
++# that trains a reader to ignore depmod output. Drop that one line; every other diagnostic still
++# passes straight through, and the exit status is still depmod's own.
++depmod_msg=$("$DEPMOD" "$@" "$KERNELRELEASE" $SYMBOL_PREFIX 2>&1)
+ ret=$?
++if test -n "$depmod_msg"; then
++	printf '%s\n' "$depmod_msg" | grep -v "could not open modules.builtin.modinfo" >&2
++fi
+ 
+ if $depmod_hack_needed; then
+ 	rm -f "$symlink"

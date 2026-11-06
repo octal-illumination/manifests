@@ -1,0 +1,90 @@
+# Note: This code is purely AI-generated.
+# 56 of the warnings in a single build came from these two probes. They iterate a platform-wide
+# partition list (product, system_ext, vendor_dlkm, odm_dlkm, system_dlkm ...) and every boot-partition
+# name (boot, init_boot) regardless of what the device actually has, and warned for each miss - twice
+# per partition plus once for the empty result. That is not a defect report, it is the tool describing
+# its own fixed probe list, and it buried the real findings in the same log.
+#
+# The fix keeps the warnings meaningful: probe only paths that exist in the input, and warn only when
+# the partition IS part of this build but carries no build.prop - a genuine anomaly. A new
+# DoesInputFileContainPartition() helper distinguishes the two cases. Verified against the target-files
+# tree: this device has SYSTEM, VENDOR, ODM and SYSTEM/{product,system_ext}; it has no *_dlkm
+# partitions, which is why those five warned.
+diff --git a/tools/releasetools/common.py b/tools/releasetools/common.py
+index fef646f3ae..d4c187affd 100644
+--- a/tools/releasetools/common.py
++++ b/tools/releasetools/common.py
+@@ -749,6 +749,23 @@ class BuildInfo(object):
+       script.AssertOemProperty(prop, values, oem_no_mount)
+ 
+ 
++def DoesInputFileContainPartition(input_file, partition):
++  """Check whether |partition| (e.g. SYSTEM) is a top-level entry of the input.
++
++  Used to tell "this device does not have that partition" (normal) apart from "the partition is
++  here but its build.prop is missing" (an anomaly worth a warning).
++  """
++  if isinstance(input_file, zipfile.ZipFile):
++    names = input_file.namelist()
++  elif zipfile.is_zipfile(input_file):
++    with zipfile.ZipFile(input_file, "r", allowZip64=True) as zfp:
++      names = zfp.namelist()
++  else:
++    return os.path.isdir(os.path.join(input_file, partition))
++  prefix = partition + '/'
++  return any(n.startswith(prefix) for n in names)
++
++
+ def DoesInputFileContain(input_file, fn):
+   """Check whether the input target_files.zip contain an entry `fn`"""
+   if isinstance(input_file, zipfile.ZipFile):
+@@ -1096,11 +1113,14 @@ class PartitionBuildProps(object):
+     Return empty string if not found.
+     """
+     image_path = 'IMAGES/' + partition_name + '.img'
+-    try:
+-      boot_img = ExtractFromInputFile(input_file, image_path)
+-    except KeyError:
+-      logger.warning('Failed to read %s', image_path)
++    # NOTE (2026-11-06, octal-illumination): the caller iterates every boot-partition name
++    # (boot, init_boot) regardless of the device, so an image this device does not have is the
++    # EXPECTED case, not an anomaly. Warning on it put 5 lines of noise in every build log, which
++    # is how a real finding (a missing IMAGES entry) would go unnoticed. Present-but-unreadable
++    # still raises below.
++    if not DoesInputFileContain(input_file, image_path):
+       return ''
++    boot_img = ExtractFromInputFile(input_file, image_path)
+     prop_file = GetBootImageBuildProp(boot_img, ramdisk_format=ramdisk_format)
+     if prop_file is None:
+       return ''
+@@ -1113,17 +1133,20 @@ class PartitionBuildProps(object):
+     Read build.prop for name from input_file.
+     Return empty string if not found.
+     """
+-    data = ''
+-    for prop_file in ['{}/etc/build.prop'.format(name.upper()),
+-                      '{}/build.prop'.format(name.upper())]:
+-      try:
+-        data = ReadFromInputFile(input_file, prop_file)
+-        break
+-      except KeyError:
+-        logger.warning('Failed to read %s', prop_file)
+-    if data == '':
++    # NOTE (2026-11-06, octal-illumination): probe only paths that exist, and warn only when the
++    # partition IS part of this build but carries no build.prop — that is a real anomaly. Absence of
++    # a candidate path is the normal case here: the caller iterates a platform-wide partition list
++    # (product, system_ext, vendor_dlkm, odm_dlkm, system_dlkm ...) while a given device implements
++    # only some of them. The previous form warned twice per absent partition plus once more for the
++    # empty result, i.e. 51 lines of noise per build.
++    upper = name.upper()
++    for prop_file in ['{}/etc/build.prop'.format(upper), '{}/build.prop'.format(upper)]:
++      if not DoesInputFileContain(input_file, prop_file):
++        continue
++      return ReadFromInputFile(input_file, prop_file)
++    if DoesInputFileContainPartition(input_file, upper):
+       logger.warning("Failed to read build.prop for partition {}".format(name))
+-    return data
++    return ''
+ 
+   @staticmethod
+   def FromBuildPropFile(name, build_prop_file):

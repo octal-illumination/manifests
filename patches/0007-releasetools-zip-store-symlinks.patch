@@ -1,0 +1,24 @@
+# Note: This code is purely AI-generated.
+# 162 of the warnings in a single build were "zip warning: name not matched: <path>", and every one of
+# the unmatched paths is a SYMLINK in the built tree (verified: system/lib64/libc.so, system/bin/linker64
+# are lrwxrwxrwx). The packaging zip ran without -y, so it could not store them and reported each. The
+# sibling call in sign_target_files_apks.py already passes -y for exactly this reason; this call was
+# simply missing it. Fixing it removes 162 lines of noise per build.
+diff --git a/tools/releasetools/non_ab_ota.py b/tools/releasetools/non_ab_ota.py
+index 2d1075eb81..9a53ddfd21 100644
+--- a/tools/releasetools/non_ab_ota.py
++++ b/tools/releasetools/non_ab_ota.py
+@@ -599,7 +599,12 @@ def GenerateNonAbOtaPackage(target_file, output_file, source_file=None):
+       tmpfile = common.MakeTempFile(suffix=".zip")
+       os.unlink(tmpfile)
+       common.RunAndCheckOutput(
+-          ["zip", tmpfile, "-r", ".", "-0"], cwd=target_file)
++          # NOTE (2026-11-06, octal-illumination): -y stores symlinks as symlinks. Without it the
++          # packaging zip cannot match the many symlink entries in the tree (e.g. SYSTEM/lib64/libc.so,
++          # SYSTEM/bin/linker64) and emits one "zip warning: name not matched" per entry — 162 of them in
++          # a single build, which is noise that hides real findings. sign_target_files_apks.py already
++          # uses -y for the same reason; this call was simply missing it.
++          ["zip", tmpfile, "-y", "-r", ".", "-0"], cwd=target_file)
+       assert zipfile.is_zipfile(tmpfile)
+       target_file = tmpfile
+ 

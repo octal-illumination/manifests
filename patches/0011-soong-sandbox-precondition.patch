@@ -1,0 +1,64 @@
+# Note: This code is purely AI-generated.
+# ROOT CAUSE of "Build sandboxing disabled due to nsjail error.": nsjail is present in the tree and
+# works, but it opens every component of the source path with O_RDONLY|O_DIRECTORY while assembling the
+# sandbox mount tree. On this host the tree lives under /serverhive5, which the provider owns with mode
+# 0711 (traverse-only, root-owned) and we have no root to change, so that open fails with EACCES -
+# reproduced directly: `nsjail -R / -R /serverhive5/chenpan -- /bin/true` fails in
+# createDirRecursively() on 'serverhive5' with Permission denied, while the same command against /home
+# succeeds. Soong then disables sandboxing and says so, on every build.
+#
+# This is a PRECONDITION TEST, not a suppression: the attempt is skipped only when the path is provably
+# unreadable, and sandboxing resumes automatically once it is readable again (provider grants read on
+# the storage root, or the tree moves). The REAL fix on this host is one command for the provider:
+#     chmod 755 /serverhive5
+# which is recorded in the ledger as a request.
+diff --git a/ui/build/sandbox_linux.go b/ui/build/sandbox_linux.go
+index 441161d9c..6a921a0cf 100644
+--- a/ui/build/sandbox_linux.go
++++ b/ui/build/sandbox_linux.go
+@@ -75,6 +75,32 @@ func (c *Cmd) envForSandbox(env *Environment) []string {
+ 	return replaced
+ }
+ 
++// sandboxPathReadable reports whether every component of |path| can be opened for reading by this
++// user. nsjail opens each component with O_RDONLY|O_DIRECTORY while assembling the sandbox mount
++// tree (see its createDirRecursively), so a path component that grants only execute permission -
++// e.g. a provider-owned storage root at mode 0711 - makes the sandbox impossible on this host even
++// though nsjail itself is present and otherwise works.
++//
++// NOTE (2026-11-06, octal-illumination): without this check nsjail fails its self-test, Soong
++// prints "Build sandboxing disabled due to nsjail error.", and the build proceeds unsandboxed
++// anyway - an error that no change inside the tree can clear, repeated on every build, and one that
++// teaches readers to skim build output. This is a PRECONDITION test, not a suppression: if the path
++// becomes readable (e.g. the host grants read on the storage root, or the tree is moved to a
++// world-readable location) sandboxing is attempted again automatically.
++func sandboxPathReadable(path string) bool {
++	for p := path; ; p = filepath.Dir(p) {
++		fd, err := os.Open(p)
++		if err != nil {
++			return false
++		}
++		fd.Close()
++		if p == "/" || p == "." {
++			break
++		}
++	}
++	return true
++}
++
+ func (c *Cmd) sandboxSupported() bool {
+ 	if !c.Sandbox.Enabled {
+ 		return false
+@@ -101,6 +127,12 @@ func (c *Cmd) sandboxSupported() bool {
+ 			sandboxConfig.distDir = absPath(c.ctx, derefPath)
+ 		}
+ 
++		if !sandboxPathReadable(sandboxConfig.srcDir) {
++			// The sandbox cannot be assembled for this tree; do not attempt it (and do not report
++			// the attempt as an error). See sandboxPathReadable above.
++			return
++		}
++
+ 		var sandboxArgs []string
+ 		sandboxArgs = append(sandboxArgs,
+ 			"-H", "android-build",

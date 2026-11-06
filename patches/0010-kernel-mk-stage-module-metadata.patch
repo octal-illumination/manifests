@@ -1,0 +1,31 @@
+# Note: This code is purely AI-generated.
+# Two parts, one real fix and one cited filter:
+#  1. REAL FIX: the depmod staging tree held only .ko files, so depmod could not find modules.order or
+#     modules.builtin - both of which the kernel build produces - and warned about them. They are now
+#     copied in.
+#  2. CITED FILTER: modules.builtin.modinfo has no producer in a 4.14 kernel (5.x vmlinux-modinfo
+#     pipeline), so kmod-32 warns about it regardless. Exactly that line is dropped from the reported
+#     stderr; the "needs unknown symbol" failure check below is untouched and still fails the build.
+diff --git a/build/tasks/kernel.mk b/build/tasks/kernel.mk
+index f081f791..295ad4d8 100644
+--- a/build/tasks/kernel.mk
++++ b/build/tasks/kernel.mk
+@@ -386,8 +386,17 @@ define build-image-kernel-modules-lineage
+     mkdir -p $(4)/lib/modules/0.0/$(3)lib/modules$(6)
+     cp $(1) $(4)/lib/modules/0.0/$(3)lib/modules$(6)
+     if [ -n "$(8)" ]; then cp -r $(8) $(4)/lib/modules/0.0/; fi
++    # NOTE (2026-11-06, octal-illumination): the staging tree above holds ONLY .ko files, so depmod
++    # could not find the module metadata that the kernel build produces alongside them and warned
++    # about each file it missed. Copy the metadata in - that is the real fix.
++    for f in modules.order modules.builtin modules.builtin.modinfo; do \
++        if [ -f $(KERNEL_OUT)/$$f ]; then cp -f $(KERNEL_OUT)/$$f $(4)/lib/modules/0.0/; fi; \
++    done
+     $(DEPMOD) -ae -F $(KERNEL_OUT)/System.map -b $(4) 0.0 2>$(4)/depmod_stderr
+-    cat $(4)/depmod_stderr >&2
++    # modules.builtin.modinfo has no producer in a 4.14 kernel (it comes from the 5.x vmlinux-modinfo
++    # pipeline), so kmod-32 warns about it on every build no matter what this tree does. Report every
++    # other depmod diagnostic; the 'needs unknown symbol' check below is unaffected.
++    grep -v "could not open modules.builtin.modinfo" $(4)/depmod_stderr >&2 || true
+     if { grep -q "needs unknown symbol" $(4)/depmod_stderr; }; then \
+       echo "ERROR: kernel module(s) need unknown symbol(s)" >&2; \
+       rm -f $(4)/depmod_stderr; \
