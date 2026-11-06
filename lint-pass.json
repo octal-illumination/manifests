@@ -5,11 +5,11 @@
   "host": "Dev-General",
   "manifest": "rmx1992_lineage_24_0.xml",
   "pins": {
-    "device": "a12c65547d0db62db7bd0c1928308cdbd7cf8d7c",
+    "device": "0eec7daf108863be0b90d8541b06b9debb88111b",
     "kernel": "9f1b190cd5abd35bc2e60fb25cb9e69344e2c0c7",
     "vendor": "e803c2364f060d049ab8820be19ca39d644310f1"
   },
   "result": "pass",
   "result_line": "RESULT: 0 FAIL, 0 WARN, 6 INFO",
-  "ts": "2026-11-06T06:14:25+0530"
+  "ts": "2026-11-06T06:48:10+0530"
 }
