@@ -12,10 +12,10 @@
 # `soc_private->cpas_handle[0]` for both. Every other caller in the tree passes the element, not the array.
 #
 # Applied by ~/sync.sh after every repo sync (tree-root-relative paths, applied from the tree root).
-diff --git a/drivers/media/platform/msm/camera_7150/cam_isp/isp_hw_mgr/isp_hw/vfe_hw/vfe_top/cam_vfe_fe_ver1.c b/drivers/media/platform/msm/camera_7150/cam_isp/isp_hw_mgr/isp_hw/vfe_hw/vfe_top/cam_vfe_fe_ver1.c
+diff --git a/kernel/realme/sm6150/drivers/media/platform/msm/camera_7150/cam_isp/isp_hw_mgr/isp_hw/vfe_hw/vfe_top/cam_vfe_fe_ver1.c b/kernel/realme/sm6150/drivers/media/platform/msm/camera_7150/cam_isp/isp_hw_mgr/isp_hw/vfe_hw/vfe_top/cam_vfe_fe_ver1.c
 index 6f833b352..cfb2c088c 100755
---- a/drivers/media/platform/msm/camera_7150/cam_isp/isp_hw_mgr/isp_hw/vfe_hw/vfe_top/cam_vfe_fe_ver1.c
-+++ b/drivers/media/platform/msm/camera_7150/cam_isp/isp_hw_mgr/isp_hw/vfe_hw/vfe_top/cam_vfe_fe_ver1.c
+--- a/kernel/realme/sm6150/drivers/media/platform/msm/camera_7150/cam_isp/isp_hw_mgr/isp_hw/vfe_hw/vfe_top/cam_vfe_fe_ver1.c
++++ b/kernel/realme/sm6150/drivers/media/platform/msm/camera_7150/cam_isp/isp_hw_mgr/isp_hw/vfe_hw/vfe_top/cam_vfe_fe_ver1.c
 @@ -396,11 +396,11 @@ static int cam_vfe_fe_reg_dump(
  		CAM_INFO(CAM_ISP, "offset 0x%x val 0x%x", i, val);
  	}
