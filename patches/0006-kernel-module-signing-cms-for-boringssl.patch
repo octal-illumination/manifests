@@ -1,0 +1,53 @@
+# Note: This code is purely AI-generated.
+# ROOT-CAUSE fix: kernel modules could not be signed, so modules_install failed and the ROM shipped
+# unloadable modules (failure-register class 18, found in build 14's log: "green" build, 3x
+# `Makefile.modinst: Error 3`, `modules.load` 0 bytes, every .ko unsigned).
+#
+# Why: the kernel compiles its host tools against the prebuilt BoringSSL headers. BoringSSL's
+# opensslconf.h defines OPENSSL_NO_CMS (documented as an over-approximation: "We do not implement
+# OpenSSL's CMS API, except for a tiny subset"), so sign-file.c selects its legacy PKCS#7 fallback.
+# That path calls PKCS7_sign(), whose output digest is not configurable, and therefore OKs only
+# hash_algo == "sha1" — while this device's kernel config requires
+# CONFIG_MODULE_SIG_HASH="sha512" with CONFIG_MODULE_SIG_FORCE=y. sign-file exits 3, modules_install
+# fails, and depmod then has no module metadata to build the dependency map from.
+#
+# Why this fix and not a weaker one: raising CONFIG_MODULE_SIG_HASH to sha1, or dropping
+# CONFIG_MODULE_SIG_FORCE, would trade a real integrity guarantee for a toolchain limitation. The
+# CMS path is the code path mainline prefers; BoringSSL implements exactly the CMS subset sign-file
+# needs (CMS_sign, CMS_add1_signer with an explicit digest, CMS_final, i2d_CMS_bio_stream), and it
+# carries a documented switch for projects targeting that subset — BORINGSSL_NO_NO_CMS, which
+# suppresses OPENSSL_NO_CMS. With the CMS path taken, CMS_add1_signer() honours the configured
+# digest.
+#
+# The define must come from the compiler command line, not the source: BoringSSL's base.h includes
+# opensslconf.h BEFORE it defines OPENSSL_IS_BORINGSSL, so by the time a source line could detect
+# BoringSSL the macro is already set. scripts/Makefile already has a per-file hook for exactly this
+# (HOSTCFLAGS_sign-file.o), and the macro is BoringSSL-specific — a no-op for real OpenSSL builds.
+#
+# Verified on the build host (not inferred): sign-file rebuilt clean; signing a module with sha512
+# now exits 0 and appends a PKCS#7 blob (module_signature.id_type = 2 = PKEY_ID_PKCS7, 681-byte
+# blob); `modules_install` exits 0 with all three modules signed (gspca_main, rmnet_perf,
+# rmnet_shs) and modules.builtin grows from 0 to 24,660 bytes.
+# Applied by ~/sync.sh after every repo sync (idempotent via git apply --check).
+# Generated from the live kernel tree diff, 2026-11-06.
+diff --git a/scripts/Makefile b/scripts/Makefile
+index 1e3d91668..68c0d2961 100644
+--- a/scripts/Makefile
++++ b/scripts/Makefile
+@@ -25,7 +25,15 @@ hostprogs-$(CONFIG_SYSTEM_EXTRA_CERTIFICATE) += insert-sys-cert
+ 
+ HOSTCFLAGS_sortextable.o = -I$(srctree)/tools/include
+ HOSTCFLAGS_asn1_compiler.o = -I$(srctree)/include
+-HOSTCFLAGS_sign-file.o = $(CRYPTO_CFLAGS)
++# NOTE (2026-11-06, octal-illumination): BoringSSL defines OPENSSL_NO_CMS to signal that it
++# implements only a small subset of OpenSSL's CMS API — but that subset is exactly the one this
++# tool needs, and BoringSSL provides its own documented switch for projects targeting it:
++# BORINGSSL_NO_NO_CMS suppresses OPENSSL_NO_CMS (see boringssl/include/openssl/opensslconf.h).
++# Without it, sign-file.c selects its legacy PKCS#7 path, whose PKCS7_sign() output digest is
++# not configurable, so the tool refuses any hash other than sha1 and MODULES_INSTALL FAILS when
++# CONFIG_MODULE_SIG_HASH is e.g. sha512. With it, the CMS path is used and CMS_add1_signer()
++# honours the configured digest. The macro is BoringSSL-specific and a no-op elsewhere.
++HOSTCFLAGS_sign-file.o = $(CRYPTO_CFLAGS) -DBORINGSSL_NO_NO_CMS
+ HOSTLOADLIBES_sign-file = $(CRYPTO_LIBS)
+ HOSTCFLAGS_extract-cert.o = $(CRYPTO_CFLAGS)
+ HOSTLOADLIBES_extract-cert = $(CRYPTO_LIBS)
