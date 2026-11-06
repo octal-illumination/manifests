@@ -1,0 +1,26 @@
+# Note: This code is purely AI-generated.
+# QCACLD/QCA-WIFI (Wi-Fi driver) vs clang 16+: the legacy Qualcomm sources intentionally
+# convert between the old A_STATUS and QDF_STATUS enum types (A_STATUS is the pre-2018
+# name of the same status space). clang promotes that pattern to an error under
+# -Wimplicit-enum-enum-cast, and this module compiles with its own -Werror (Kbuild cppflags).
+# Keep -Werror for everything else; disable exactly this one diagnostic class, module-scoped.
+# Verified on the build host: drivers/staging/qcacld-3.0/core/dp/htt/htt_h2t.o and
+# qca-wifi-host-cmn/hif/src/ce/ce_main.o compile clean with the flag (real build flags).
+# Applied by ~/sync.sh after every repo sync (idempotent via git apply --check).
+# Generated from the live kernel tree diff, 2026-11-06.
+diff --git a/drivers/staging/qcacld-3.0/Kbuild b/drivers/staging/qcacld-3.0/Kbuild
+index 4f4522264..cd2f3069b 100644
+--- a/drivers/staging/qcacld-3.0/Kbuild
++++ b/drivers/staging/qcacld-3.0/Kbuild
+@@ -2302,6 +2302,11 @@ cppflags-y +=	-DANI_OS_TYPE_ANDROID=6 \
+ 		-Wall\
+ 		-Werror\
+ 		-D__linux__
++# NOTE (2026-11-06, octal-illumination): the legacy QCACLD/QCA-WIFI code converts between
++# the old A_STATUS and QDF_STATUS enum types by design (pre-2018 Qualcomm sources). clang
++# 16+ promotes that pattern to an error (-Wimplicit-enum-enum-cast under -Werror). Keep
++# -Werror for everything else; disable exactly this class, module-scoped.
++ccflags-y += -Wno-implicit-enum-enum-cast
+ 
+ cppflags-$(CONFIG_PTT_SOCK_SVC_ENABLE) += -DPTT_SOCK_SVC_ENABLE
+ cppflags-$(CONFIG_FEATURE_WLAN_WAPI) += -DFEATURE_WLAN_WAPI
