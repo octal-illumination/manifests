@@ -7,10 +7,10 @@
 # Supplying an empty file was rejected: it would assert "no built-in module metadata" about a kernel
 # that has thousands of built-ins. Instead the wrapper drops that single line and passes every other
 # depmod diagnostic through unchanged, keeping depmod's exit status.
-diff --git a/scripts/depmod.sh b/scripts/depmod.sh
+diff --git a/kernel/realme/sm6150/scripts/depmod.sh b/kernel/realme/sm6150/scripts/depmod.sh
 index c7b8f827c..100c219df 100755
---- a/scripts/depmod.sh
-+++ b/scripts/depmod.sh
+--- a/kernel/realme/sm6150/scripts/depmod.sh
++++ b/kernel/realme/sm6150/scripts/depmod.sh
 @@ -63,8 +63,17 @@ set -- -ae -F System.map
  if test -n "$INSTALL_MOD_PATH"; then
  	set -- "$@" -b "$INSTALL_MOD_PATH"

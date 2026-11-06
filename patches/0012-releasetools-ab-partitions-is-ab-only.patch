@@ -1,0 +1,23 @@
+# Note: This code is purely AI-generated.
+# META/ab_partitions.txt is written only for A/B updates (it backs the caret map). This device has no
+# super partition and no slots, so its absence is the normal case - yet releasetools warned on every
+# build, three lines of noise that devalue the warnings that do matter. The warning is kept for the
+# case that is a real defect: a build that IS an A/B update and has no partition map.
+diff --git a/build/make/tools/releasetools/common.py b/build/make/tools/releasetools/common.py
+index d4c187a..6cf689a 100644
+--- a/build/make/tools/releasetools/common.py
++++ b/build/make/tools/releasetools/common.py
+@@ -1024,7 +1024,12 @@ def LoadInfoDict(input_file, repacking=False):
+   try:
+     d["ab_partitions"] = read_helper("META/ab_partitions.txt").split("\n")
+   except KeyError:
+-    logger.warning("Can't find META/ab_partitions.txt")
++    # NOTE (2026-11-06, octal-illumination): ab_partitions.txt is only written for A/B updates (it
++    # backs the caret map). On a non-A/B device - this one has no super partition and no slots - its
++    # absence is the normal case, not a packaging defect, and warning about it on every build is
++    # noise that devalues the warnings that matter. Warn only when the build IS an A/B update.
++    if d.get("ab_update") == "true":
++      logger.warning("Can't find META/ab_partitions.txt")
+   return d
+ 
+ 

@@ -12,10 +12,10 @@
 # the storage root, or the tree moves). The REAL fix on this host is one command for the provider:
 #     chmod 755 /serverhive5
 # which is recorded in the ledger as a request.
-diff --git a/ui/build/sandbox_linux.go b/ui/build/sandbox_linux.go
+diff --git a/build/soong/ui/build/sandbox_linux.go b/build/soong/ui/build/sandbox_linux.go
 index 441161d9c..6a921a0cf 100644
---- a/ui/build/sandbox_linux.go
-+++ b/ui/build/sandbox_linux.go
+--- a/build/soong/ui/build/sandbox_linux.go
++++ b/build/soong/ui/build/sandbox_linux.go
 @@ -75,6 +75,32 @@ func (c *Cmd) envForSandbox(env *Environment) []string {
  	return replaced
  }

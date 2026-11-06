@@ -6,10 +6,10 @@
 #  2. CITED FILTER: modules.builtin.modinfo has no producer in a 4.14 kernel (5.x vmlinux-modinfo
 #     pipeline), so kmod-32 warns about it regardless. Exactly that line is dropped from the reported
 #     stderr; the "needs unknown symbol" failure check below is untouched and still fails the build.
-diff --git a/build/tasks/kernel.mk b/build/tasks/kernel.mk
+diff --git a/vendor/lineage/build/tasks/kernel.mk b/vendor/lineage/build/tasks/kernel.mk
 index f081f791..295ad4d8 100644
---- a/build/tasks/kernel.mk
-+++ b/build/tasks/kernel.mk
+--- a/vendor/lineage/build/tasks/kernel.mk
++++ b/vendor/lineage/build/tasks/kernel.mk
 @@ -386,8 +386,17 @@ define build-image-kernel-modules-lineage
      mkdir -p $(4)/lib/modules/0.0/$(3)lib/modules$(6)
      cp $(1) $(4)/lib/modules/0.0/$(3)lib/modules$(6)

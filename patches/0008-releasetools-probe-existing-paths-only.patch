@@ -10,10 +10,10 @@
 # DoesInputFileContainPartition() helper distinguishes the two cases. Verified against the target-files
 # tree: this device has SYSTEM, VENDOR, ODM and SYSTEM/{product,system_ext}; it has no *_dlkm
 # partitions, which is why those five warned.
-diff --git a/tools/releasetools/common.py b/tools/releasetools/common.py
+diff --git a/build/make/tools/releasetools/common.py b/build/make/tools/releasetools/common.py
 index fef646f3ae..d4c187affd 100644
---- a/tools/releasetools/common.py
-+++ b/tools/releasetools/common.py
+--- a/build/make/tools/releasetools/common.py
++++ b/build/make/tools/releasetools/common.py
 @@ -749,6 +749,23 @@ class BuildInfo(object):
        script.AssertOemProperty(prop, values, oem_no_mount)
  

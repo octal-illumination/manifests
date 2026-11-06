@@ -1,20 +1,7 @@
-# Note: This code is purely AI-generated.
-# Kernel host-tool fix (kernel source IS ours to maintain): scripts/sign-file.c and
-# scripts/extract-cert.c used the OpenSSL ENGINE API unconditionally. The LOS kernel
-# build (BoardConfigKernel.mk) deliberately compiles host tools against prebuilt
-# BoringSSL headers (kernel-build-tools), and BoringSSL defines OPENSSL_NO_ENGINE and
-# ships no ENGINE API at all (verified: libcrypto.so exports zero ENGINE symbols).
-# AOSP android-mainline solved this exact problem by conditionalizing PKCS#11 support
-# on OPENSSL_NO_ENGINE; this is the minimal backport of that conditionalization.
-# With ENGINE unavailable, a pkcs11: key now fails with an explicit error (upstream
-# behavior) instead of implicit-declaration compile errors. Verified: both files
-# compile with 0 errors under BOTH the BoringSSL shadow (clang) and system OpenSSL.
-# Applied by ~/sync.sh after every repo sync (idempotent via git apply --check).
-# Generated from the live kernel tree diff, 2026-11-05.
-diff --git a/scripts/extract-cert.c b/scripts/extract-cert.c
+diff --git a/kernel/realme/sm6150/scripts/extract-cert.c b/kernel/realme/sm6150/scripts/extract-cert.c
 index dd1a4bd70..b4b46be5d 100644
---- a/scripts/extract-cert.c
-+++ b/scripts/extract-cert.c
+--- a/kernel/realme/sm6150/scripts/extract-cert.c
++++ b/kernel/realme/sm6150/scripts/extract-cert.c
 @@ -21,7 +21,9 @@
  #include <openssl/bio.h>
  #include <openssl/pem.h>
@@ -48,10 +35,10 @@ index dd1a4bd70..b4b46be5d 100644
  		BIO *b;
  		X509 *x509;
  
-diff --git a/scripts/sign-file.c b/scripts/sign-file.c
+diff --git a/kernel/realme/sm6150/scripts/sign-file.c b/kernel/realme/sm6150/scripts/sign-file.c
 index 12acc70e5..719db2ff6 100644
---- a/scripts/sign-file.c
-+++ b/scripts/sign-file.c
+--- a/kernel/realme/sm6150/scripts/sign-file.c
++++ b/kernel/realme/sm6150/scripts/sign-file.c
 @@ -27,7 +27,9 @@
  #include <openssl/evp.h>
  #include <openssl/pem.h>

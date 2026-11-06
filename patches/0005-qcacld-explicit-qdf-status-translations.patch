@@ -15,10 +15,10 @@
 # pristine and -Werror is fully in force for the module).
 # Applied by ~/sync.sh after every repo sync (idempotent via git apply --check).
 # Generated from the live kernel tree diff, 2026-11-06.
-diff --git a/drivers/staging/qca-wifi-host-cmn/hif/src/ce/ce_main.c b/drivers/staging/qca-wifi-host-cmn/hif/src/ce/ce_main.c
+diff --git a/kernel/realme/sm6150/drivers/staging/qca-wifi-host-cmn/hif/src/ce/ce_main.c b/kernel/realme/sm6150/drivers/staging/qca-wifi-host-cmn/hif/src/ce/ce_main.c
 index ccf04ce52..067875824 100644
---- a/drivers/staging/qca-wifi-host-cmn/hif/src/ce/ce_main.c
-+++ b/drivers/staging/qca-wifi-host-cmn/hif/src/ce/ce_main.c
+--- a/kernel/realme/sm6150/drivers/staging/qca-wifi-host-cmn/hif/src/ce/ce_main.c
++++ b/kernel/realme/sm6150/drivers/staging/qca-wifi-host-cmn/hif/src/ce/ce_main.c
 @@ -2132,7 +2132,13 @@ hif_send_head(struct hif_opaque_softc *hif_ctx,
  
  	if (qdf_unlikely(!ce_hdl)) {
@@ -34,10 +34,10 @@ index ccf04ce52..067875824 100644
  	}
  
  	QDF_NBUF_UPDATE_TX_PKT_COUNT(nbuf, QDF_NBUF_TX_PKT_HIF);
-diff --git a/drivers/staging/qcacld-3.0/core/dp/htt/htt_h2t.c b/drivers/staging/qcacld-3.0/core/dp/htt/htt_h2t.c
+diff --git a/kernel/realme/sm6150/drivers/staging/qcacld-3.0/core/dp/htt/htt_h2t.c b/kernel/realme/sm6150/drivers/staging/qcacld-3.0/core/dp/htt/htt_h2t.c
 index a2a4051dc..61c9656f6 100644
---- a/drivers/staging/qcacld-3.0/core/dp/htt/htt_h2t.c
-+++ b/drivers/staging/qcacld-3.0/core/dp/htt/htt_h2t.c
+--- a/kernel/realme/sm6150/drivers/staging/qcacld-3.0/core/dp/htt/htt_h2t.c
++++ b/kernel/realme/sm6150/drivers/staging/qcacld-3.0/core/dp/htt/htt_h2t.c
 @@ -628,7 +628,7 @@ htt_h2t_rx_ring_cfg_msg_hl(struct htt_pdev_t *pdev)
  
  	pkt = htt_htc_pkt_alloc(pdev);

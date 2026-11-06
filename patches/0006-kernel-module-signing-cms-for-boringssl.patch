@@ -30,10 +30,10 @@
 # rmnet_shs) and modules.builtin grows from 0 to 24,660 bytes.
 # Applied by ~/sync.sh after every repo sync (idempotent via git apply --check).
 # Generated from the live kernel tree diff, 2026-11-06.
-diff --git a/scripts/Makefile b/scripts/Makefile
+diff --git a/kernel/realme/sm6150/scripts/Makefile b/kernel/realme/sm6150/scripts/Makefile
 index 1e3d91668..68c0d2961 100644
---- a/scripts/Makefile
-+++ b/scripts/Makefile
+--- a/kernel/realme/sm6150/scripts/Makefile
++++ b/kernel/realme/sm6150/scripts/Makefile
 @@ -25,7 +25,15 @@ hostprogs-$(CONFIG_SYSTEM_EXTRA_CERTIFICATE) += insert-sys-cert
  
  HOSTCFLAGS_sortextable.o = -I$(srctree)/tools/include

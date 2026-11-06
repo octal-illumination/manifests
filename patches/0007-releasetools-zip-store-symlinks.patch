@@ -4,10 +4,10 @@
 # are lrwxrwxrwx). The packaging zip ran without -y, so it could not store them and reported each. The
 # sibling call in sign_target_files_apks.py already passes -y for exactly this reason; this call was
 # simply missing it. Fixing it removes 162 lines of noise per build.
-diff --git a/tools/releasetools/non_ab_ota.py b/tools/releasetools/non_ab_ota.py
+diff --git a/build/make/tools/releasetools/non_ab_ota.py b/build/make/tools/releasetools/non_ab_ota.py
 index 2d1075eb81..9a53ddfd21 100644
---- a/tools/releasetools/non_ab_ota.py
-+++ b/tools/releasetools/non_ab_ota.py
+--- a/build/make/tools/releasetools/non_ab_ota.py
++++ b/build/make/tools/releasetools/non_ab_ota.py
 @@ -599,7 +599,12 @@ def GenerateNonAbOtaPackage(target_file, output_file, source_file=None):
        tmpfile = common.MakeTempFile(suffix=".zip")
        os.unlink(tmpfile)
