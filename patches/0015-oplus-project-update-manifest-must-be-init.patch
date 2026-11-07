@@ -1,0 +1,77 @@
+# Note: This code is purely AI-generated.
+# REAL BUG FIX (use-after-free window), found by C118 after it was widened to catch uppercase WARNING.
+#
+# modpost reported: Section mismatch in reference from the function update_manifest() (and
+# update_telephony_manifest()) to the variable .init.data:boot_command_line. `boot_command_line` is declared
+# `char __initdata boot_command_line[COMMAND_LINE_SIZE]` (init/main.c:131), i.e. that memory is RELEASED
+# after kernel init, while these functions sit in .text with no annotation, so the linker must assume they
+# can be called once the data is gone - reading freed memory.
+#
+# Every call site was checked before annotating: both functions are called only from
+# `static int __init oppo_project_init(void)` (qcom:726-727, gki:718-719, mtk:815); the only other mention
+# is commented out. Annotating them __init places them in .init.text, freed together with the data they
+# read, which is exactly what modpost's own message asks for and closes the window rather than silencing
+# the report. The built variant for this device is qcom/oplus_project.o (CONFIG_OPLUS_SYSTEM_KERNEL_QCOM);
+# gki and mtk carry the identical defect and are fixed so a platform-config change cannot reintroduce it.
+diff --git a/kernel/realme/sm6150/drivers/soc/oplus/system/oplus_project/gki/oplus_project.c b/kernel/realme/sm6150/drivers/soc/oplus/system/oplus_project/gki/oplus_project.c
+index d4a0aca21..26e8ad7a2 100755
+--- a/kernel/realme/sm6150/drivers/soc/oplus/system/oplus_project/gki/oplus_project.c
++++ b/kernel/realme/sm6150/drivers/soc/oplus/system/oplus_project/gki/oplus_project.c
+@@ -435,7 +435,8 @@ static void dump_secure_stage(struct seq_file *s)
+     seq_printf(s, "%d", secure_oem_config);
+ }
+ 
+-static void update_manifest(struct proc_dir_entry *parent_1, struct proc_dir_entry *parent_2)
++static void __init update_manifest(struct proc_dir_entry *parent_1,
++                               struct proc_dir_entry *parent_2)
+ {
+     static const char* manifest_src[2] = {
+         "/vendor/odm/etc/vintf/manifest_ssss.xml",
+@@ -467,7 +468,8 @@ static void update_manifest(struct proc_dir_entry *parent_1, struct proc_dir_ent
+     set_fs(fs);
+ }
+ 
+-static void update_telephony_manifest(struct proc_dir_entry *parent_1, struct proc_dir_entry *parent_2)
++static void __init update_telephony_manifest(struct proc_dir_entry *parent_1,
++                               struct proc_dir_entry *parent_2)
+ {
+     static const char* manifest_src[2] = {
+         "/vendor/odm/etc/vintf/telephony_manifest_ssss.xml",
+diff --git a/kernel/realme/sm6150/drivers/soc/oplus/system/oplus_project/mtk/oplus_project.c b/kernel/realme/sm6150/drivers/soc/oplus/system/oplus_project/mtk/oplus_project.c
+index a482b5cd7..302dab762 100755
+--- a/kernel/realme/sm6150/drivers/soc/oplus/system/oplus_project/mtk/oplus_project.c
++++ b/kernel/realme/sm6150/drivers/soc/oplus/system/oplus_project/mtk/oplus_project.c
+@@ -539,7 +539,8 @@ static void dump_secure_stage(struct seq_file *s)
+     seq_printf(s, "%d", secure_oem_config);
+ }
+ 
+-static void update_manifest(struct proc_dir_entry *parent_1, struct proc_dir_entry *parent_2)
++static void __init update_manifest(struct proc_dir_entry *parent_1,
++                               struct proc_dir_entry *parent_2)
+ {
+     static const char* manifest_src[2] = {
+         "/vendor/odm/etc/vintf/manifest_ssss.xml",
+diff --git a/kernel/realme/sm6150/drivers/soc/oplus/system/oplus_project/qcom/oplus_project.c b/kernel/realme/sm6150/drivers/soc/oplus/system/oplus_project/qcom/oplus_project.c
+index 7328b943f..041e0e7a6 100755
+--- a/kernel/realme/sm6150/drivers/soc/oplus/system/oplus_project/qcom/oplus_project.c
++++ b/kernel/realme/sm6150/drivers/soc/oplus/system/oplus_project/qcom/oplus_project.c
+@@ -448,7 +448,8 @@ static void dump_secure_stage(struct seq_file *s)
+     seq_printf(s, "%d", secure_oem_config);
+ }
+ 
+-static void update_manifest(struct proc_dir_entry *parent_1, struct proc_dir_entry *parent_2)
++static void __init update_manifest(struct proc_dir_entry *parent_1,
++                               struct proc_dir_entry *parent_2)
+ {
+     static const char* manifest_src[2] = {
+         "/vendor/odm/etc/vintf/manifest_ssss.xml",
+@@ -479,7 +480,8 @@ static void update_manifest(struct proc_dir_entry *parent_1, struct proc_dir_ent
+     set_fs(fs);
+ }
+ 
+-static void update_telephony_manifest(struct proc_dir_entry *parent_1, struct proc_dir_entry *parent_2)
++static void __init update_telephony_manifest(struct proc_dir_entry *parent_1,
++                               struct proc_dir_entry *parent_2)
+ {
+     static const char* manifest_src[2] = {
+         "/vendor/odm/etc/vintf/telephony_manifest_ssss.xml",
