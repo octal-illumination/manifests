@@ -1,0 +1,26 @@
+# Note: This code is purely AI-generated.
+# Every build carried: `net/Makefile:24: CC cannot link executables. Skipping bpfilter.` - emitted
+# unconditionally, even though CONFIG_BPFILTER is NOT SET in this kernel (verified in the built .config).
+# A notice about skipping a feature nobody asked for is noise, and noise is what made a HARD module-signing
+# defect invisible among 218 lines in build 14. The message is now gated on CONFIG_BPFILTER, so it appears
+# only when bpfilter is actually wanted and the compiler genuinely cannot build it - where it is actionable.
+diff --git a/kernel/realme/sm6150/net/Makefile b/kernel/realme/sm6150/net/Makefile
+index 8870e6888..c338523ef 100644
+--- a/kernel/realme/sm6150/net/Makefile
++++ b/kernel/realme/sm6150/net/Makefile
+@@ -20,8 +20,14 @@ obj-$(CONFIG_TLS)		+= tls/
+ obj-$(CONFIG_XFRM)		+= xfrm/
+ obj-$(CONFIG_UNIX_SCM)		+= unix/
+ obj-$(CONFIG_NET)		+= ipv6/
++# NOTE (2026-11-07, octal-illumination): this warned unconditionally whenever the compiler cannot link,
++# even with CONFIG_BPFILTER disabled (which is the case here), so every build announced that it was
++# skipping a feature nobody had asked for - noise that devalues the notices that do matter. Report the
++# skip only when bpfilter is actually enabled, where it is genuinely actionable.
+ ifneq ($(CC_CAN_LINK),y)
+-$(warning CC cannot link executables. Skipping bpfilter.)
++ifneq ($(CONFIG_BPFILTER),)
++$(warning CC cannot link executables. Skipping the enabled bpfilter.)
++endif
+ else
+ obj-$(CONFIG_BPFILTER)		+= bpfilter/
+ endif
